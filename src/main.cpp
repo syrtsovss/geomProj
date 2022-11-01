@@ -37,6 +37,9 @@ int main() {
             // Если событие - закрытие окна, закрываем окно
             if (event.type == sf::Event::Closed)
                 window.close();
+            // Если нажато Ctrl+Q, закрываем окно
+            if (event.type == sf::Event::KeyPressed && event.key.code==sf::Keyboard::Q && event.key.control)
+                window.close();
         }
         // Запускаем обновление окна по таймеру с заданной частотой
         ImGui::SFML::Update(window, timer.restart());
