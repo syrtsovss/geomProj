@@ -100,6 +100,13 @@ void render(sf::Vector2u size){
             1.5
         );
     }
+    for (int i=0; i<counter; i++){
+        drawList->AddCircleFilled(
+            nextRect[i],
+            3,
+            ImColor(200, 100, 150)
+        );
+    }
     ImGui::End();
 
 }
