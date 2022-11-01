@@ -32,32 +32,12 @@ struct Rect{
 //Вектор прямоугольников
 std::vector<Rect> rectangles;
 
+//Координаты следующего прямоугольника
+sf::Vector2i nextRect[3]={{0, 0}, {0, 0}, {0, 0}};
+//Номер клика мыши
+char counter=0;
+
 //Операции с векторами
-
-/*//Преобразование в float из int
-sf::Vector2f toFloat(sf::Vector2u a){
-    return sf::Vector2f((float) a.x, (float) a.y);
-}
-// Из float в int
-sf::Vector2u toInt(sf::Vector2f a){
-    return sf::Vector2u((float) a.x, (float) a.y);
-}
-
-
-//Сумма
-sf::Vector2f operator+(sf::Vector2f a, sf::Vector2f b){
-    return sf::Vector2f(a.x+b.x, a.y+b.y);
-}
-//Разность
-sf::Vector2f operator-(sf::Vector2f a, sf::Vector2f b){
-    return sf::Vector2f(a.x-b.x, a.y-b.y);
-}
-
-//Умножение вектора на число
-sf::Vector2f operator*(float a, sf::Vector2f v){
-    return sf::Vector2f(a*v.x, a*v.y);
-}
-*/
 
 //Скалярное произведение
 float operator*(sf::Vector2f a, sf::Vector2f b){
@@ -126,9 +106,6 @@ void render(sf::Vector2u size){
 
 
 int main() {
-    //Задаём прямоугольник
-    rectangles.push_back(Rect({300, 100}, {500, 200}, {300, 50}));
-    rectangles.push_back(Rect({200, 400}, {100, 500}, {300, 400}));
     // Создаём окно
     sf::RenderWindow window(sf::VideoMode(SIZE_X, SIZE_Y), "Geometry project");
     
@@ -153,6 +130,20 @@ int main() {
             // Если нажато Ctrl+Q, закрываем окно
             if (event.type == sf::Event::KeyPressed && event.key.code==sf::Keyboard::Q && event.key.control)
                 window.close();
+            //Если событие - клик мыши
+            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button==sf::Mouse::Button::Left){
+                //Получаем координаты
+                nextRect[counter]=sf::Vector2i(event.mouseButton.x, event.mouseButton.y);
+                //Прибавляем 1 к счётчику
+                counter++;
+                //Если прошло три нажатия с последнего добавления прямоугольника мышью
+                if(counter==3){
+                    //Добавляем прямоугольник
+                    rectangles.push_back(Rect(nextRect[0],nextRect[1],nextRect[2]));
+                    //Обнуляем счётчик
+                    counter=0;
+                }
+            }
         }
         // Запускаем обновление окна по таймеру с заданной частотой
         ImGui::SFML::Update(window, timer.restart());
