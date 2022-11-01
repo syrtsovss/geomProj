@@ -119,22 +119,6 @@ void render(sf::Vector2u size){
             ImColor(100, 150, 200), 
             1.5
         );
-
-        drawList->AddCircleFilled(
-            rect.pointA,
-            3,
-            ImColor(200, 100, 150)
-        );
-        drawList->AddCircleFilled(
-            rect.pointB,
-            3,
-            ImColor(200, 100, 150)
-        );
-        drawList->AddCircleFilled(
-            rect.pointP,
-            3,
-            ImColor(200, 100, 150)
-        );
     }
     ImGui::End();
 
@@ -144,7 +128,7 @@ void render(sf::Vector2u size){
 int main() {
     //Задаём прямоугольник
     rectangles.push_back(Rect({300, 100}, {500, 200}, {300, 50}));
-
+    rectangles.push_back(Rect({200, 400}, {100, 500}, {300, 400}));
     // Создаём окно
     sf::RenderWindow window(sf::VideoMode(SIZE_X, SIZE_Y), "Geometry project");
     
@@ -172,6 +156,8 @@ int main() {
         }
         // Запускаем обновление окна по таймеру с заданной частотой
         ImGui::SFML::Update(window, timer.restart());
+        //Рисуем задачу
+        render(window.getSize());
         // Создаём окно управления
         ImGui::Begin("Control");
         // Выбор цвета
@@ -181,8 +167,6 @@ int main() {
         }
         // Заканчиваем рисовать окно
         ImGui::End();
-        //Рисуем задачу
-        render(window.getSize());
         // Очищаем окно
         window.clear(bg);
         // Рисуем средствами Imgui+sfml
