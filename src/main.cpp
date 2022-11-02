@@ -33,7 +33,7 @@ struct Rect{
 std::vector<Rect> rectangles;
 
 //Координаты следующего прямоугольника
-sf::Vector2i nextRect[3]={{0, 0}, {0, 0}, {0, 0}};
+int nextRect[3][2]={{0, 0}, {0, 0}, {0, 0}};
 //Номер клика мыши
 char counter=0;
 
@@ -102,7 +102,7 @@ void render(sf::Vector2u size){
     }
     for (int i=0; i<counter; i++){
         drawList->AddCircleFilled(
-            nextRect[i],
+            sf::Vector2i(nextRect[i][0],nextRect[i][1]),
             3,
             ImColor(200, 100, 150)
         );
@@ -111,6 +111,35 @@ void render(sf::Vector2u size){
 
 }
 
+//Отрисовка инструмента изменения цвета фона
+void backgroundSettings(){
+    //Проверяем, раскрыта ли панель "Background color"
+    if(!ImGui::CollapsingHeader("Background color"))
+        return;
+    //Выбор цвета
+    if (ImGui::ColorEdit3("Background color", color)) {
+        // Если значение color изменилось, меняем цвет фона
+        setColor(color);
+    }
+}
+//Отрисовка инструмента добавления прямоугольника
+void addRect(){
+    //Проверяем, раскрыта ли панель "Add rectangle"
+    if(!ImGui::CollapsingHeader("Add rectangle"))
+        return;
+    //Выбор координат точек 
+    if(ImGui::DragInt2("Point A", nextRect[0]));
+    if(ImGui::DragInt2("Point B", nextRect[1]));
+    if(ImGui::DragInt2("Point on line CD", nextRect[2]));
+    //Если нажата кнопка "Add"
+    if(ImGui::Button("Add")){
+        //Добавляем прямоугольник
+        rectangles.push_back(Rect(
+            sf::Vector2i(nextRect[0][0], nextRect[0][1]),
+            sf::Vector2i(nextRect[1][0],nextRect[1][1]),
+            sf::Vector2i(nextRect[2][0],nextRect[2][1])));
+    }
+}
 
 int main() {
     // Создаём окно
@@ -140,13 +169,17 @@ int main() {
             //Если событие - клик мыши
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button==sf::Mouse::Button::Left){
                 //Получаем координаты
-                nextRect[counter]=sf::Vector2i(event.mouseButton.x, event.mouseButton.y);
+                nextRect[counter][0]=event.mouseButton.x;
+                nextRect[counter][1]=event.mouseButton.y;
                 //Прибавляем 1 к счётчику
                 counter++;
                 //Если прошло три нажатия с последнего добавления прямоугольника мышью
                 if(counter==3){
                     //Добавляем прямоугольник
-                    rectangles.push_back(Rect(nextRect[0],nextRect[1],nextRect[2]));
+                    rectangles.push_back(Rect(
+                        sf::Vector2i(nextRect[0][0], nextRect[0][1]),
+                        sf::Vector2i(nextRect[1][0],nextRect[1][1]),
+                        sf::Vector2i(nextRect[2][0],nextRect[2][1])));
                     //Обнуляем счётчик
                     counter=0;
                 }
@@ -159,10 +192,9 @@ int main() {
         // Создаём окно управления
         ImGui::Begin("Control");
         // Выбор цвета
-        if (ImGui::ColorEdit3("Background color", color)) {
-            // Если значение color изменилось, меняем цвет фона
-            setColor(color);
-        }
+        backgroundSettings();
+        // Добавление прямоугольника
+        addRect();
         // Заканчиваем рисовать окно
         ImGui::End();
         // Очищаем окно
