@@ -36,6 +36,8 @@ std::vector<Rect> rectangles;
 int nextRect[3][2]={{0, 0}, {0, 0}, {0, 0}};
 //Номер клика мыши
 char counter=0;
+//Количество созданных случайных прямоугольников
+int nextRandom=10;
 
 //Операции с векторами
 
@@ -122,8 +124,17 @@ void backgroundSettings(){
         setColor(color);
     }
 }
-//Отрисовка инструмента добавления прямоугольника
+
+//Добавление прямоугольника
 void addRect(){
+    rectangles.push_back(Rect(
+        sf::Vector2i(nextRect[0][0], nextRect[0][1]),
+        sf::Vector2i(nextRect[1][0],nextRect[1][1]),
+        sf::Vector2i(nextRect[2][0],nextRect[2][1])));
+}
+
+//Отрисовка инструмента добавления прямоугольника
+void showRect(){
     //Проверяем, раскрыта ли панель "Add rectangle"
     if(!ImGui::CollapsingHeader("Add rectangle"))
         return;
@@ -134,10 +145,41 @@ void addRect(){
     //Если нажата кнопка "Add"
     if(ImGui::Button("Add")){
         //Добавляем прямоугольник
-        rectangles.push_back(Rect(
-            sf::Vector2i(nextRect[0][0], nextRect[0][1]),
-            sf::Vector2i(nextRect[1][0],nextRect[1][1]),
-            sf::Vector2i(nextRect[2][0],nextRect[2][1])));
+        addRect();
+    }
+}
+//Добавление случайных прямоугольников
+void addRandom(int num, sf::RenderWindow * windowPtr){
+    //Получаем текущий размер окна
+    sf::Vector2u size=(*windowPtr).getSize();
+    //Добавляем в цикле прямоугольники
+    for(int i=0; i<num; i++){
+        //Получаем случайные координаты точек
+        sf::Vector2i pointA=sf::Vector2i(rand()%size.x, rand()%size.y);
+        sf::Vector2i pointB=sf::Vector2i(rand()%size.x, rand()%size.y);
+        sf::Vector2i pointP=sf::Vector2i(rand()%size.x, rand()%size.y);
+        //Если точки на стороне совпали
+        if(pointA==pointB)
+            //Смещаем одну из точек
+            pointB=pointB+sf::Vector2i(2*(rand()%2)-1,2*(rand()%2)-1);
+        //Добавляем прямоугольник
+        rectangles.push_back(Rect(pointA, pointB, pointP));
+    }
+}
+
+//Отрисовка инструмента добавления случайных прямоугольников
+void showRandom(sf::RenderWindow * windowPtr){
+    //Проверяем, раскрыта ли панель "Add random rectangles"
+    if(!ImGui::CollapsingHeader("Add random rectangles"))
+        return;
+    //Инструмент выбора числа случайных прямоугольников
+    if(ImGui::DragInt("Number of rectangles", &nextRandom)){
+        //Если количество прямоугольников отрицательно, обнуляем
+        if(nextRandom<0) nextRandom=0;
+    }
+    //Если нажата кнопка "Add", добавляем прямоугольники
+    if(ImGui::Button("Add")){
+        addRandom(nextRandom, windowPtr);
     }
 }
 
@@ -176,10 +218,7 @@ int main() {
                 //Если прошло три нажатия с последнего добавления прямоугольника мышью
                 if(counter==3){
                     //Добавляем прямоугольник
-                    rectangles.push_back(Rect(
-                        sf::Vector2i(nextRect[0][0], nextRect[0][1]),
-                        sf::Vector2i(nextRect[1][0],nextRect[1][1]),
-                        sf::Vector2i(nextRect[2][0],nextRect[2][1])));
+                    addRect();
                     //Обнуляем счётчик
                     counter=0;
                 }
@@ -194,7 +233,9 @@ int main() {
         // Выбор цвета
         backgroundSettings();
         // Добавление прямоугольника
-        addRect();
+        showRect();
+        // добавление случайных прямоугольников
+        showRandom(&window);
         // Заканчиваем рисовать окно
         ImGui::End();
         // Очищаем окно
