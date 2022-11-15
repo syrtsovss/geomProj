@@ -48,12 +48,21 @@ int nextRandom=10;
 std::string pathIn="/home/m/in.txt";
 std::string pathOut="/home/m/out.txt";
 
+//Номера прямоугольников и точки, требуемые в задаче
+int rect1Num, rect2Num;
+sf::Vector2f maxPoint1={0,0}, maxPoint2={0,0};
+
 //Операции с векторами
 
 //Скалярное произведение
 float operator*(sf::Vector2f a, sf::Vector2f b){
     return a.x*b.x+a.y*b.y;
 }
+//Длина
+float abs(sf::Vector2f a){
+    return sqrt(a.x*a.x+a.y*a.y);
+}
+
 //Нормирование
 sf::Vector2f norm(sf::Vector2f a){
     //Модуль вектора
@@ -65,6 +74,50 @@ sf::Vector2f turn(sf::Vector2f a){
     return sf::Vector2f(-a.y, a.x);
 }
 
+//Пересечение двух прямых через две точки. Предполагается, что прямые не параллельны.
+sf::Vector2f intersectLines(sf::Vector2f a1, sf::Vector2f b1, sf::Vector2f a2, sf::Vector2f b2){
+    //Уравнения прямых имеют вид x*(a1.y-b1.y)+y*(b1.x-a1.x)=b1.x*a1.y-b1.y*a1.x
+    //Определители системы
+    float dd = (a1.y-b1.y)*(b2.x-a2.x)-(a2.y-b2.y)*(b1.x-a1.x);
+    float dx = (b1.x*a1.y-b1.y*a1.x)*(b2.x-a2.x)-(b2.x*a2.y-b2.y*a2.x)*(b1.x-a1.x);
+    float dy = (a1.y-b1.y)*(b2.x*a2.y-b2.y*a2.x)-(a2.y-b2.y)*(b1.x*a1.y-b1.y*a1.x);
+    //Считаем координаты точки пересечения
+    return sf::Vector2f(dx/dd, dy/dd);
+}
+
+//Пересечение двух отрезков
+void intersectSegments(sf::Vector2f a1, sf::Vector2f b1, sf::Vector2f a2, sf::Vector2f b2, std::vector<sf::Vector2f> * points){
+    //Если отрезки параллельны
+    if(abs((a1-b1).x*(a2-b2).y-(a2-b2).x*(a1-b1).y)<0.000001){
+        //Если лежат на одной прямой
+        if(abs((a1-b1).x*(a1-b2).y-(a1-b2).x*(a1-b1).y)<0.000001){
+            //Если b2 между a1 и b1
+            if((a1-b2)*(b1-b2)<0.000001){
+                //Добавляем b2
+                points->push_back(b2);
+            }
+            //Остальное аналогично
+            if((a1-a2)*(b1-a2)<0.000001){
+                points->push_back(a2);
+            }
+            if((a2-b1)*(b2-b1)<0.000001){
+                points->push_back(b1);
+            }
+            if((a2-a1)*(b2-a1)<0.000001){
+                points->push_back(a1);
+            }
+        }
+        return;
+    }
+    else{
+        //Если не параллельны, пересекаем прямые
+        sf::Vector2f i=intersectLines(a1,b1,a2,b2);
+        //Проверяем, лежит ли на отрезках точка пересечения
+        if((a1-i)*(b1-i)<0.000001 && (a2-i)*(b2-i)<0.000001){
+            points->push_back(i);
+        }
+    }
+}
 //Расчёт вершин прямоугольника
 void solveRect(Rect * rect){
     //Вектор AD
@@ -131,6 +184,11 @@ void render(sf::Vector2u size){
             1.5
         );
     }
+    drawList->AddLine(
+        static_cast<sf::Vector2i>(maxPoint1), static_cast<sf::Vector2i>(maxPoint2),
+        ImColor(250, 50, 50),
+        1.5
+    );
     for (int i=0; i<counter; i++){
         drawList->AddCircleFilled(
             sf::Vector2i(nextRect[i][0],nextRect[i][1]),
@@ -269,6 +327,46 @@ void showFile(){
         writeToFile();
 }
 
+//Решение задачи
+void solveTask(){
+    //Максимальная дистанция
+    float maxDistance=0;
+    //По всем прямоугольникам
+    for(int i=0; i<rectangles.size(); i++){
+        //Считаем прямоугольник, если нужно
+        if(!rectangles.at(i).isSolved){
+            solveRect(&rectangles.at(i));
+        }
+        Rect * pRect1=&rectangles.at(i);
+        //Создаём массив с вершинами
+        sf::Vector2f rect1Points[4]={static_cast<sf::Vector2f>(pRect1->pointA), static_cast<sf::Vector2f>(pRect1->pointB), pRect1->pointC, pRect1->pointD};
+        //По всем прямоугольникам
+        for(int j=0; j<i; j++){
+            Rect * pRect2=&rectangles.at(j);
+            //Создаём массив с вершинами
+            sf::Vector2f rect2Points[4]={static_cast<sf::Vector2f>(pRect2->pointA), static_cast<sf::Vector2f>(pRect2->pointB), pRect2->pointC, pRect2->pointD};
+            std::vector<sf::Vector2f> possiblePoints;
+            //Пересекаем все стороны прямоугольников со всеми
+            for(int ii=0; ii<4; ii++){
+                for(int jj=0; jj<4; jj++){
+                    intersectSegments(rect1Points[ii], rect1Points[(ii+1)%4], rect2Points[jj], rect2Points[(jj+1)%4], &possiblePoints);
+                }
+            }
+            //Сравниваем расстояния между точками пересечения
+            for(auto point1:possiblePoints){
+                for(auto point2:possiblePoints){
+                    if(abs(point1-point2)>maxDistance){
+                        maxDistance=abs(point1-point2);
+                        maxPoint1=point1;
+                        maxPoint2=point2;
+                        rect1Num=i;
+                        rect2Num=j;
+                    }
+                }
+            }
+        }
+    }
+}
 
 int main() {
     // Создаём окно
@@ -325,6 +423,9 @@ int main() {
         showRandom(&window);
         //Работа с файлами
         showFile();
+
+        solveTask();
+
         // Заканчиваем рисовать окно
         ImGui::End();
         // Очищаем окно
@@ -334,6 +435,5 @@ int main() {
         // Отображаем изменения на окне
         window.display();
     }
-
     return 0;
 }
