@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 
+
 const int SIZE_X=1080;
 const int SIZE_Y=720;
 
@@ -30,10 +31,13 @@ struct Rect{
     //Флаг, рассчитан ли прямоугольник
     bool isSolved=false;
     //Оставшиеся вершины
-    sf::Vector2f pointC={0, 0}, pointD={0, 0};
+    sf::Vector2f pointC={-1, 0}, pointD={0, 0};
     Rect(const sf::Vector2i &pointA, const sf::Vector2i &pointB, const sf::Vector2i &pointP) : 
         pointA(pointA), pointB(pointB), pointP(pointP){}
 };
+
+//Флаг (Добавляется ли прямоугольник)
+bool addRectFlag=false;
 
 //Вектор прямоугольников
 std::vector<Rect> rectangles;
@@ -46,11 +50,15 @@ char counter=0;
 int nextRandom=10;
 //Пути к файлу для чтения и записи
 std::string pathIn="/home/m/in.txt";
-std::string pathOut="/home/m/out.txt";
+std::string pathOut="/home/m/in.txt";
 
 //Номера прямоугольников и точки, требуемые в задаче
-int rect1Num, rect2Num;
-sf::Vector2f maxPoint1={0,0}, maxPoint2={0,0};
+int rect1Num=-1, rect2Num=-1;
+sf::Vector2f maxPoint1={-1,-1}, maxPoint2={-1,-1};
+//Максимальная дистанция между точками пересечения
+float maxDistance=0;
+//Номер прямоугольника, до которого уже проверили расстояние
+int maxSolvedRect=-1;
 
 //Операции с векторами
 
@@ -144,8 +152,43 @@ void solveRect(Rect * rect){
     rect->pointC=static_cast<sf::Vector2f>(rect->pointB)+AD;
 }
 
+//Рисуем прямоугольник
+
+void rectRender(Rect* rectPtr, ImColor color, ImDrawList* drawList){
+    if(!rectPtr->isSolved){
+        solveRect(rectPtr);
+    }
+    sf::Vector2i pointD=static_cast<sf::Vector2i>(rectPtr->pointD);
+    sf::Vector2i pointC=static_cast<sf::Vector2i>(rectPtr->pointC);
+    
+    //Рисуем стороны прямоугольника
+    drawList->AddLine(
+        rectPtr->pointA, rectPtr->pointB,
+        color, 
+            2.5
+    );
+    drawList->AddLine(
+        rectPtr->pointB, pointC,
+        color, 
+        2.5
+    );
+    drawList->AddLine(
+        pointC, pointD,
+        color, 
+        2.5
+    );
+    drawList->AddLine(
+        pointD, rectPtr->pointA,
+        color, 
+        2.5
+    );
+}
+
 //Рисуем задачу
+
 void render(sf::Vector2u size){
+    if (addRectFlag)
+     return;
     // Задаём размеры и положение невидимого окна
     ImGui::SetNextWindowPos(ImVec2(0,0));
     ImGui::SetNextWindowSize(ImVec2(size.x,size.y));
@@ -155,40 +198,24 @@ void render(sf::Vector2u size){
                  ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
     //Получаем список примитивов
     auto drawList=ImGui::GetWindowDrawList();
-    for (auto rect: rectangles){
-        if(!rect.isSolved){
-            solveRect(&rect);
-        }
-        sf::Vector2i pointD=static_cast<sf::Vector2i>(rect.pointD);
-        sf::Vector2i pointC=static_cast<sf::Vector2i>(rect.pointC);
-
-        //Рисуем стороны прямоугольника
-        drawList->AddLine(
-            rect.pointA, rect.pointB,
-            ImColor(100, 150, 200), 
-            1.5
-        );
-        drawList->AddLine(
-            rect.pointB, pointC,
-            ImColor(100, 150, 200), 
-            1.5
-        );
-        drawList->AddLine(
-            pointC, pointD,
-            ImColor(100, 150, 200), 
-            1.5
-        );
-        drawList->AddLine(
-            pointD, rect.pointA,
-            ImColor(100, 150, 200), 
-            1.5
-        );
+    //std::cout << "meow" << '\n';
+    for (int i=0; i<rectangles.size(); i++){
+        //Рисуем прямоугольники в цикле
+        rectRender(&rectangles.at(i), ImColor(100, 150, 200), drawList);
     }
+    
+    //Рисуем прямоугольники, требуемые в задаче, и отрезок
     drawList->AddLine(
         static_cast<sf::Vector2i>(maxPoint1), static_cast<sf::Vector2i>(maxPoint2),
         ImColor(250, 50, 50),
-        1.5
+        2.5
     );
+    //Рисуем точки, определяющие ещё не выбранный при помощи мыши прямоугольник
+    if(rect1Num>-1 && rect2Num>-1){
+        rectRender(&rectangles.at(rect1Num), ImColor(255, 240, 145), drawList);
+        rectRender(&rectangles.at(rect2Num), ImColor(255, 240, 145), drawList);
+    }
+    
     for (int i=0; i<counter; i++){
         drawList->AddCircleFilled(
             sf::Vector2i(nextRect[i][0],nextRect[i][1]),
@@ -214,10 +241,15 @@ void backgroundSettings(){
 
 //Добавление прямоугольника
 void addRect(){
+    //Меняем флаг добавления прямоугольника
+    addRectFlag=true;
+    //Добавляем прямоугольник
     rectangles.push_back(Rect(
         sf::Vector2i(nextRect[0][0], nextRect[0][1]),
         sf::Vector2i(nextRect[1][0],nextRect[1][1]),
         sf::Vector2i(nextRect[2][0],nextRect[2][1])));
+    //Меняем флаг добавления прямоугольника
+    addRectFlag=false;
 }
 
 //Отрисовка инструмента добавления прямоугольника
@@ -314,14 +346,24 @@ void readFromFile(){
         sf::Vector2i(pointBX, pointBY),
         sf::Vector2i(pointPX, pointPY)));
     }
+    //Мы записываем новые прямоугольники, которые ещё не сравнивали
+    maxSolvedRect=-1;
+    //Устанавливаем минимальную дистанцию
+    maxPoint1={-1,-1};
+    maxPoint2={-1,-1};
+    maxDistance=0;
     file.close();
 }
 
+//Метод, отображающий кнопки загрузки из файла и записи в файл
 void showFile(){
+    //Проверяем, раскрыта ли панель
     if(!ImGui::CollapsingHeader("Files"))
         return;
+    //Если нажата кнопка "Load", загружаем из файла
     if(ImGui::Button("Load"))
         readFromFile();
+    //Если нажата кнопка "Save", записываем в файл
     ImGui::SameLine();
     if(ImGui::Button("Save"))
         writeToFile();
@@ -329,10 +371,8 @@ void showFile(){
 
 //Решение задачи
 void solveTask(){
-    //Максимальная дистанция
-    float maxDistance=0;
     //По всем прямоугольникам
-    for(int i=0; i<rectangles.size(); i++){
+    for(int i=maxSolvedRect+1; i<rectangles.size(); i++){
         //Считаем прямоугольник, если нужно
         if(!rectangles.at(i).isSolved){
             solveRect(&rectangles.at(i));
@@ -366,6 +406,18 @@ void solveTask(){
             }
         }
     }
+    //Записываем количество сравненных между собой прямоугольников
+    maxSolvedRect=rectangles.size()-1;
+}
+
+//Отображение кнопки решения задачи
+void showSolve(){
+    //Проверяем, раскрыта ли панель "Solve task"
+    if(!ImGui::CollapsingHeader("Solve task"))
+        return;
+    //Если кнопка нажата, решаем задачу
+    if(ImGui::Button("Solve"))
+        solveTask();
 }
 
 int main() {
@@ -423,9 +475,8 @@ int main() {
         showRandom(&window);
         //Работа с файлами
         showFile();
-
-        solveTask();
-
+        //Решение задачи
+        showSolve();
         // Заканчиваем рисовать окно
         ImGui::End();
         // Очищаем окно
