@@ -205,17 +205,16 @@ void render(sf::Vector2u size){
     }
     
     //Рисуем прямоугольники, требуемые в задаче, и отрезок
+    if(rect1Num>-1 && rect2Num>-1){
+        rectRender(&rectangles.at(rect1Num), ImColor(255, 240, 145), drawList);
+        rectRender(&rectangles.at(rect2Num), ImColor(255, 240, 145), drawList);
+    }
     drawList->AddLine(
         static_cast<sf::Vector2i>(maxPoint1), static_cast<sf::Vector2i>(maxPoint2),
         ImColor(250, 50, 50),
         2.5
     );
     //Рисуем точки, определяющие ещё не выбранный при помощи мыши прямоугольник
-    if(rect1Num>-1 && rect2Num>-1){
-        rectRender(&rectangles.at(rect1Num), ImColor(255, 240, 145), drawList);
-        rectRender(&rectangles.at(rect2Num), ImColor(255, 240, 145), drawList);
-    }
-    
     for (int i=0; i<counter; i++){
         drawList->AddCircleFilled(
             sf::Vector2i(nextRect[i][0],nextRect[i][1]),
@@ -410,6 +409,8 @@ void solveTask(){
     maxSolvedRect=rectangles.size()-1;
 }
 
+
+
 //Отображение кнопки решения задачи
 void showSolve(){
     //Проверяем, раскрыта ли панель "Solve task"
@@ -418,6 +419,25 @@ void showSolve(){
     //Если кнопка нажата, решаем задачу
     if(ImGui::Button("Solve"))
         solveTask();
+}
+
+//Отображение панели помощи
+void showHelp(){
+    //Проверяем, раскрыта ли панель "Help"
+    if(!ImGui::CollapsingHeader("Help")){
+        return;
+    }
+    //Показываем текст
+    ImGui::Text("ABOUT THIS");
+    ImGui::BulletText("Author Syrtsov Stepan (10-1)");
+    ImGui::BulletText("Powered by SFML+ImGui");
+    ImGui::Separator();
+    ImGui::Text("TASK:");
+    ImGui::Text("  A set of rectangles is given. It is required\n  "
+                "to search two rectangles with the biggest\n  "
+                "distance between intersection points.");
+    ImGui::Separator();
+    ImGui::Text("Press Ctrl+Q to exit this program.");
 }
 
 int main() {
@@ -477,6 +497,8 @@ int main() {
         showFile();
         //Решение задачи
         showSolve();
+        //Панель помощи
+        showHelp();
         // Заканчиваем рисовать окно
         ImGui::End();
         // Очищаем окно
