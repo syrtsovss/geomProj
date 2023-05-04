@@ -155,6 +155,7 @@ void solveRect(Rect * rect){
 //Рисуем прямоугольник
 
 void rectRender(Rect* rectPtr, ImColor color, ImDrawList* drawList){
+    //Если вершины прямоугольника не посчитаны
     if(!rectPtr->isSolved){
         solveRect(rectPtr);
     }
